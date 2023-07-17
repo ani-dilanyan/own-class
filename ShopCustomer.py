@@ -2,13 +2,14 @@ import datetime
 from Money import Money
 from Person import Person
 from Product import Product
-from MyExceptions import CustomerDataTypeError, CustomerDataValueError, ProductTypeError, ProductValueError, PersonalDataTypeError
+from MyExceptions import CustomerDataTypeError, CustomerDataValueError, ProductTypeError, ProductValueError, \
+    PersonalDataTypeError
 from Date import Date
 from Time import Time
 from Purchase import Purchase
 from Bank_account import BankAccount
 from CustomerData import CustomerData
-from prices import inventory
+from ShopInventory import inventory
 
 
 class CustomerAccount(Person):
@@ -48,7 +49,10 @@ class CustomerAccount(Person):
         try:
             if type(product) != Product:
                 raise ProductTypeError("product", product)
-        except ProductTypeError as err:
+            for product_in_inventory in inventory.products:
+                if product.id == product_in_inventory.id and product.quantity > product_in_inventory.quantity:
+                    raise ProductValueError("No enough {} in the inventory".format(product.title), product.quantity)
+        except (ProductTypeError, ProductValueError) as err:
             return err
         except AttributeError:
             return "Attribute 'cart_items' not found"
@@ -61,45 +65,42 @@ class CustomerAccount(Person):
             self.cart_items.append(product)
             return "Product successfully added to cart"
 
-    def remove_from_cart(self, product_title):
+    def remove_from_cart(self, product_index):
         try:
-            if type(product_title) != str:
-                raise ProductTypeError("product title", product_title)
-            if product_title not in inventory.get_inventory_product_titles():
-                raise ProductValueError("product title", product_title)
+            if type(product_index) != int:
+                raise ProductTypeError("product title", product_index)
+            if product_index > len(self.cart_items):
+                raise ProductValueError("product index", product_index)
         except ProductTypeError as err:
             return err
         except AttributeError:
             return "Attribute 'cart_items' not found"
         else:
-            for i in range(len(self.cart_items)):
-                if product_title == self.cart_items[i].title:
-                    self.cart_items.pop(i)
-                    return "Product successfully removed from cart"
-            return "Product not found"
+            self.cart_items.pop(product_index)
+            return "Product successfully removed from cart"
 
-    def change_cart_product_quantity(self, product_title, new_quantity):
+    def change_cart_product_quantity(self, product_index, new_quantity):
         try:
-            if type(product_title) != str:
-                raise ProductTypeError("product title", product_title)
-            if product_title not in inventory.get_inventory_product_titles():
-                raise ProductValueError("product title", product_title)
+            if type(product_index) != int:
+                raise ProductTypeError("product title", product_index)
+            if product_index > len(self.cart_items):
+                raise ProductValueError("product index", product_index)
         except ProductTypeError as err:
             return err
         except AttributeError:
             return "Attribute 'cart_items' not found"
         else:
-            for i in range(len(self.cart_items)):
-                if product_title == self.cart_items[i].title:
-                    self.cart_items[i].change_quantity(new_quantity)
-                    return "Product quantity changed successfully"
-            return "Product not found"
+            self.cart_items[product_index].change_quantity(new_quantity)
+            return "Product quantity changed successfully"
 
     def view_cart(self):
         cart_str = ""
-        for product in self.cart_items:
-            cart_str += "{}\n".format(product)
-        cart_str += "total: {}".format(self.total_price())
+        if self.cart_items:
+            for product in self.cart_items:
+                cart_str += "{}\n".format(product)
+            cart_str += "total: {}".format(self.total_price())
+        else:
+            cart_str = "No products to show"
         return cart_str
 
     def total_price(self):
@@ -125,22 +126,19 @@ class CustomerAccount(Person):
                     break
             return "Product successfully added to favourites' list"
 
-    def remove_from_favourites(self, product_title):
+    def remove_from_favourites(self, product_index):
         try:
-            if type(product_title) != str:
-                raise ProductTypeError("product title", product_title)
-            if product_title not in inventory.get_inventory_product_titles():
-                raise ProductValueError("product title", product_title)
+            if type(product_index) != int:
+                raise ProductTypeError("product title", product_index)
+            if product_index > len(self.favourite_products):
+                raise ProductValueError("product index", product_index)
         except ProductTypeError as err:
             return err
         except AttributeError:
             return "Attribute 'cart_items' not found"
         else:
-            for i in range(len(self.favourite_products)):
-                if product_title == self.favourite_products[i].title:
-                    self.favourite_products.pop(i)
-                    return "Product successfully removed from favourites"
-            return "Product not found"
+            self.favourite_products.pop(product_index)
+            return "Product successfully removed from favourites"
 
     def view_favourites(self):
         favourites_str = ""
@@ -204,16 +202,16 @@ class CustomerAccount(Person):
 
 
 # c = CustomerAccount("Ani", "Dilan", Date(20, 3, 2005), "anidilanyan05@gmail.com", "password_", "+37499333432")
-# c.add_to_cart(Product(1, "Apple", Money("USD", 1), 1))
+# print(c.add_to_cart(Product(1, "Apple", Money("USD", 1), 3)))
 # c.add_to_cart(Product(2, "Pear", Money("USD", 2), 2))
 # c.add_to_cart(Product(2, "Pear", Money("USD", 2), 8))
-# c.change_cart_product_quantity("Apple", 2)
-# c.remove_from_cart("Apple")
+# c.change_cart_product_quantity(0, 2)
+# c.remove_from_cart(0)
 # print(c.view_cart())
 
 # c.add_to_favourites(Product(1, "Apple", Money("USD", 1), 1))
 # c.add_to_favourites(Product(2, "Pear", Money("USD", 2), 2))
-# c.remove_from_favourites("Apple")
+# c.remove_from_favourites(0)
 # print(c.view_favourites())
 
 # client_bank_account = BankAccount(
